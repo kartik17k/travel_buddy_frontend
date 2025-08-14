@@ -4,9 +4,11 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import { ItineraryRequest, Itinerary } from '../types';
 import { itineraryApi } from '../services/api';
-import { MapPin, Calendar, DollarSign, Sparkles, Info } from 'lucide-react';
+import { Calendar, DollarSign, Sparkles, Info } from 'lucide-react';
+import { Controller } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
+import CityAutocomplete from '../components/CityAutocomplete';
 
 const Generate: React.FC = () => {
   const { token, isAuthenticated } = useAuth();
@@ -16,6 +18,10 @@ const Generate: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+
+  const [fromValid, setFromValid] = useState(false);
+  const [toValid, setToValid] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -23,6 +29,7 @@ const Generate: React.FC = () => {
     setValue,
     setError,
     clearErrors,
+    control,
   } = useForm<ItineraryRequest>({
     defaultValues: {
       model: 'groq',
@@ -263,48 +270,38 @@ const Generate: React.FC = () => {
 
         <form onSubmit={handleSubmit(onSubmit)} className="card space-y-6">
           {/* Origin */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              From Where?
-            </label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input
-                {...register('from_location', {
-                  required: 'Origin is required',
-                  minLength: { value: 2, message: 'Please enter a valid city name' },
-                })}
-                type="text"
-                className={`input pl-10 ${errors.from_location ? 'border-red-500' : ''}`}
-                placeholder="e.g., Mumbai, New York, London"
+          <Controller
+            name="from_location"
+            control={control}
+            rules={{ required: true, validate: () => fromValid }}
+            render={({ field }) => (
+              <CityAutocomplete
+                label="From Where?"
+                value={field.value}
+                onChange={(val: string) => setValue("from_location", val)}
+                onValid={setFromValid}
+                name="from_location"
+                required
               />
-            </div>
-            {errors.from_location && (
-              <p className="text-red-600 text-sm mt-1">{errors.from_location.message}</p>
             )}
-          </div>
+          />
 
           {/* Destination */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              To Where?
-            </label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input
-                {...register('to_location', {
-                  required: 'Destination is required',
-                  minLength: { value: 2, message: 'Please enter a valid city name' },
-                })}
-                type="text"
-                className={`input pl-10 ${errors.to_location ? 'border-red-500' : ''}`}
-                placeholder="e.g., Paris, Tokyo, Bali"
+          <Controller
+            name="to_location"
+            control={control}
+            rules={{ required: true, validate: () => toValid }}
+            render={({ field }) => (
+              <CityAutocomplete
+                label="To Where?"
+                value={field.value}
+                onChange={(val: string) => setValue("to_location", val)}
+                onValid={setToValid}
+                name="to_location"
+                required
               />
-            </div>
-            {errors.to_location && (
-              <p className="text-red-600 text-sm mt-1">{errors.to_location.message}</p>
             )}
-          </div>
+          />
 
           {/* Budget */}
           <div>
@@ -323,8 +320,9 @@ const Generate: React.FC = () => {
                 type="number"
                 className={`input pl-10 ${errors.budget ? 'border-red-500' : ''}`}
                 placeholder="e.g., 2000"
-                min="100"
-                step="50"
+                min={100}
+                max={50000}
+                required
               />
             </div>
             {errors.budget && (
@@ -333,62 +331,57 @@ const Generate: React.FC = () => {
           </div>
 
           {/* Travel Dates - Updated to use date pickers */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-3">
-              Travel Dates
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Start Date */}
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Departure Date
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => handleDateChange('start', e.target.value)}
-                    min={getTodayDate()}
-                    className={`input pl-10 ${errors.dates ? 'border-red-500' : ''}`}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* End Date */}
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Return Date
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => handleDateChange('end', e.target.value)}
-                    min={startDate || getTodayDate()}
-                    className={`input pl-10 ${errors.dates ? 'border-red-500' : ''}`}
-                    required
-                  />
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Start Date */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Departure Date
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => handleDateChange('start', e.target.value)}
+                  min={getTodayDate()}
+                  className={`input pl-10 ${errors.dates ? 'border-red-500' : ''}`}
+                  required
+                />
               </div>
             </div>
-            
-            {/* Show selected date range */}
-            {startDate && endDate && (
-              <div className="mt-2 p-2 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <Calendar className="inline h-4 w-4 mr-1" />
-                  Selected: {startDate} to {endDate}
-                </p>
+            {/* End Date */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Return Date
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => handleDateChange('end', e.target.value)}
+                  min={startDate || getTodayDate()}
+                  className={`input pl-10 ${errors.dates ? 'border-red-500' : ''}`}
+                  required
+                />
               </div>
-            )}
+            </div>
+          </div>
 
-            {errors.dates && (
-              <p className="text-red-600 text-sm mt-1">{errors.dates.message}</p>
-            )}
-            
+          {/* Show selected date range */}
+          {startDate && endDate && (
+            <div className="mt-2 p-2 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <Calendar className="inline h-4 w-4 mr-1" />
+                Selected: {startDate} to {endDate}
+              </p>
+            </div>
+          )}
+
+          {errors.dates && (
+            <p className="text-red-600 text-sm mt-1">{errors.dates.message}</p>
+          )}
+
           {/* Hidden input for react-hook-form */}
           <input
             {...register('dates', {
@@ -404,7 +397,6 @@ const Generate: React.FC = () => {
             type="hidden"
             value="groq"
           />
-        </div>
 
           {/* Submit Button */}
           <button
@@ -424,6 +416,12 @@ const Generate: React.FC = () => {
               </div>
             )}
           </button>
+
+          {(errors.from_location || errors.to_location) && (
+            <div style={{ color: "red", fontSize: 12, marginTop: 8 }}>
+              Please select both cities from the suggestions.
+            </div>
+          )}
         </form>
       </div>
     </div>

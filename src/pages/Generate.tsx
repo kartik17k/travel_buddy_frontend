@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import { ItineraryRequest, Itinerary } from '../types';
 import { itineraryApi } from '../services/api';
-import { MapPin, Calendar, DollarSign, Bot, Sparkles, Info } from 'lucide-react';
+import { MapPin, Calendar, DollarSign, Sparkles, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -13,21 +13,70 @@ const Generate: React.FC = () => {
   const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedItinerary, setGeneratedItinerary] = useState<Itinerary | null>(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
+    setValue,
+    setError,
+    clearErrors,
   } = useForm<ItineraryRequest>({
     defaultValues: {
-      model: 'local',
+      model: 'groq',
     },
   });
 
-  const selectedModel = watch('model');
+  // Format dates for backend
+  const formatDatesForBackend = (start: string, end: string): string => {
+    if (!start || !end) return '';
+    return `${start} to ${end}`;
+  };
+
+  // Handle date changes
+  const handleDateChange = (type: 'start' | 'end', value: string) => {
+    if (type === 'start') {
+      setStartDate(value);
+      if (endDate && value > endDate) {
+        setEndDate('');
+        setError('dates', { message: 'End date must be after start date' });
+      }
+    } else {
+      if (startDate && value < startDate) {
+        setError('dates', { message: 'End date must be after start date' });
+        return;
+      }
+      setEndDate(value);
+    }
+
+    if (type === 'start' && endDate && value <= endDate) {
+      clearErrors('dates');
+      setValue('dates', formatDatesForBackend(value, endDate));
+    } else if (type === 'end' && startDate && value >= startDate) {
+      clearErrors('dates');
+      setValue('dates', formatDatesForBackend(startDate, value));
+    }
+  };
+
+  // Get today's date for min attribute
+  const getTodayDate = () => {
+    return new Date().toISOString().split('T')[0];
+  };
 
   const onSubmit = async (data: ItineraryRequest) => {
+    // Validate dates are selected
+    if (!startDate || !endDate) {
+      setError('dates', { message: 'Both start and end dates are required' });
+      return;
+    }
+
+    if (startDate >= endDate) {
+      setError('dates', { message: 'End date must be after start date' });
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const response = await itineraryApi.generate(data, token || undefined);
@@ -52,30 +101,6 @@ const Generate: React.FC = () => {
       navigate('/dashboard');
     }
   };
-
-  const modelOptions = [
-    {
-      value: 'local',
-      label: 'Static Template',
-      description: 'Fast generation with pre-designed templates',
-      icon: Sparkles,
-      recommended: false,
-    },
-    {
-      value: 'groq',
-      label: 'Groq AI',
-      description: 'Ultra-fast AI generation with smart recommendations',
-      icon: Bot,
-      recommended: true,
-    },
-    {
-      value: 'openai',
-      label: 'OpenAI GPT',
-      description: 'Premium AI with detailed personalization',
-      icon: Bot,
-      recommended: false,
-    },
-  ];
 
   if (generatedItinerary) {
     return (
@@ -307,84 +332,79 @@ const Generate: React.FC = () => {
             )}
           </div>
 
-          {/* Dates */}
+          {/* Travel Dates - Updated to use date pickers */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-3">
               Travel Dates
             </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input
-                {...register('dates', {
-                  required: 'Travel dates are required',
-                  minLength: { value: 5, message: 'Please enter valid date range' },
-                })}
-                type="text"
-                className={`input pl-10 ${errors.dates ? 'border-red-500' : ''}`}
-                placeholder="e.g., 2025-08-15 to 2025-08-20"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Start Date */}
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Departure Date
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => handleDateChange('start', e.target.value)}
+                    min={getTodayDate()}
+                    className={`input pl-10 ${errors.dates ? 'border-red-500' : ''}`}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* End Date */}
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Return Date
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => handleDateChange('end', e.target.value)}
+                    min={startDate || getTodayDate()}
+                    className={`input pl-10 ${errors.dates ? 'border-red-500' : ''}`}
+                    required
+                  />
+                </div>
+              </div>
             </div>
+            
+            {/* Show selected date range */}
+            {startDate && endDate && (
+              <div className="mt-2 p-2 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <Calendar className="inline h-4 w-4 mr-1" />
+                  Selected: {startDate} to {endDate}
+                </p>
+              </div>
+            )}
+
             {errors.dates && (
               <p className="text-red-600 text-sm mt-1">{errors.dates.message}</p>
             )}
-            <p className="text-xs text-slate-500 mt-1">
-              Format: YYYY-MM-DD to YYYY-MM-DD
-            </p>
-          </div>
+            
+          {/* Hidden input for react-hook-form */}
+          <input
+            {...register('dates', {
+              required: 'Travel dates are required',
+            })}
+            type="hidden"
+            value={formatDatesForBackend(startDate, endDate)}
+          />
 
-          {/* AI Model Selection */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-3">
-              Choose AI Model
-            </label>
-            <div className="space-y-3">
-              {modelOptions.map((option) => {
-                const IconComponent = option.icon;
-                return (
-                  <label
-                    key={option.value}
-                    className={`relative flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      selectedModel === option.value
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <input
-                      {...register('model')}
-                      type="radio"
-                      value={option.value}
-                      className="sr-only"
-                    />
-                    <div className="flex items-start space-x-3 flex-1">
-                      <div className={`p-2 rounded-lg ${
-                        selectedModel === option.value ? 'bg-primary-100' : 'bg-slate-100'
-                      }`}>
-                        <IconComponent className={`h-5 w-5 ${
-                          selectedModel === option.value ? 'text-primary-600' : 'text-slate-600'
-                        }`} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="font-medium text-slate-900">{option.label}</h4>
-                          {option.recommended && (
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
-                              Recommended
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-slate-600 mt-1">{option.description}</p>
-                      </div>
-                    </div>
-                    {selectedModel === option.value && (
-                      <div className="w-5 h-5 rounded-full bg-primary-600 flex items-center justify-center">
-                        <div className="w-2 h-2 rounded-full bg-white"></div>
-                      </div>
-                    )}
-                  </label>
-                );
-              })}
-            </div>
-          </div>
+          {/* Hidden input for model - always groq */}
+          <input
+            {...register('model')}
+            type="hidden"
+            value="groq"
+          />
+        </div>
 
           {/* Submit Button */}
           <button

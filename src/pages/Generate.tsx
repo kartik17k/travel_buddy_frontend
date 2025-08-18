@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import { ItineraryRequest, Itinerary } from '../types';
 import { itineraryApi } from '../services/api';
-import { MapPin, Calendar, DollarSign, Sparkles, Info } from 'lucide-react';
+import { MapPin, Calendar, IndianRupee, Sparkles, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -129,11 +129,11 @@ const Generate: React.FC = () => {
                     <span>{generatedItinerary.travel_itinerary.dates}</span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <DollarSign className="h-4 w-4" />
-                    <span>Budget: ${generatedItinerary.travel_itinerary.budget}</span>
+                    <IndianRupee className="h-4 w-4" />
+                    <span>Budget: {generatedItinerary.travel_itinerary.budget}</span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <span>Est. Cost: ${generatedItinerary.summary.total_estimated_cost}</span>
+                    <span>Est. Cost: {generatedItinerary.summary.total_estimated_cost}</span>
                   </div>
                 </div>
               </div>
@@ -171,7 +171,7 @@ const Generate: React.FC = () => {
                   </div>
                   <div className="mt-2 text-right">
                     <span className="text-sm font-medium text-slate-700">
-                      Daily Budget: ${day.budget}
+                      Daily Budget: {day.budget}
                     </span>
                   </div>
                 </div>
@@ -309,15 +309,15 @@ const Generate: React.FC = () => {
           {/* Budget */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Total Budget (USD)
+              Total Budget (INR)
             </label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
               <input
                 {...register('budget', {
                   required: 'Budget is required',
-                  min: { value: 100, message: 'Budget must be at least $100' },
-                  max: { value: 50000, message: 'Budget cannot exceed $50,000' },
+                  min: { value: 100, message: 'Budget must be at least 100' },
+                  max: { value: 50000, message: 'Budget cannot exceed 50,000' },
                   valueAsNumber: true,
                 })}
                 type="number"

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Calendar, DollarSign, Trash2, Eye } from 'lucide-react';
+import { MapPin, Calendar, IndianRupee, Trash2, Eye } from 'lucide-react';
 import { Itinerary } from '../types';
 import { format, parseISO } from 'date-fns';
 
@@ -76,7 +76,7 @@ const ItineraryCard: React.FC<ItineraryCardProps> = ({
         </div>
         
         <div className="flex items-center space-x-2 text-sm text-slate-600">
-          <DollarSign className="h-4 w-4" />
+          <IndianRupee className="h-4 w-4" />
           <span>Budget: ${travel_itinerary.budget}</span>
         </div>
         

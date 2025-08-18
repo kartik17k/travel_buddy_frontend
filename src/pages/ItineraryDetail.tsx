@@ -8,7 +8,7 @@ import {
   ArrowLeft, 
   MapPin, 
   Calendar, 
-  DollarSign, 
+  IndianRupee, 
   Clock, 
   Info, 
   Trash2,
@@ -194,7 +194,7 @@ const ItineraryDetail: React.FC = () => {
 
             <div className="flex items-center space-x-3">
               <div className="p-3 bg-purple-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-purple-600" />
+                <IndianRupee className="h-6 w-6 text-purple-600" />
               </div>
               <div>
                 <p className="text-sm text-slate-500">Total Budget</p>
